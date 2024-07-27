@@ -38,21 +38,21 @@ const NFTCalculator = () => {
   const calculateRarity = () => {
     const results = attributes.map(attribute => {
       const subcategoryCount = attribute.subcategories.length;
-      const weightedSubcategoryCount = subcategoryCount * attribute.weight;
+      const base = 0.5;
       
-      let rarityScores;
-      if (curveType === 'linear') {
-        rarityScores = attribute.subcategories.map((_, index) => {
-          return (subcategoryCount - index) / subcategoryCount;
-        });
-      } else if (curveType === 'exponential') {
-        const base = 0.5;
-        rarityScores = attribute.subcategories.map((_, index) => {
-          return Math.pow(base, index / (subcategoryCount - 1));
-        });
-      }
+      // Calculate rarity scores using exponential distribution
+      const rarityScores = attribute.subcategories.map((_, index) => {
+        return Math.pow(base, index / (subcategoryCount - 1));
+      });
       
+      // Apply weights to rarity scores
       const weightedRarityScores = rarityScores.map(score => score * attribute.weight);
+      
+      // Calculate total weighted rarity for normalization
+      const totalWeightedRarity = weightedRarityScores.reduce((sum, score) => sum + score, 0);
+      
+      // Calculate counts and normalize
+      const counts = weightedRarityScores.map(score => (score / totalWeightedRarity) * totalNFTs);
       
       return {
         name: attribute.name,
@@ -60,9 +60,9 @@ const NFTCalculator = () => {
           name: subcat,
           rarityScore: rarityScores[index],
           weightedRarityScore: weightedRarityScores[index],
-          count: Math.round(totalNFTs * (1 / subcategoryCount)), // Estimate count based on equal distribution
+          count: Math.round(counts[index]),
         })),
-        weightedSubcategoryCount,
+        weightedSubcategoryCount: subcategoryCount * attribute.weight,
       };
     });
 
@@ -87,18 +87,10 @@ const NFTCalculator = () => {
       <Card className="mb-4">
         <CardHeader>
           <CardTitle>Distribution Curve</CardTitle>
-          <CardDescription>Select the distribution curve type for rarity calculation.</CardDescription>
+          <CardDescription>The rarity calculation uses an exponential distribution curve.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Select value={curveType} onValueChange={setCurveType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select curve type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="linear">Linear</SelectItem>
-              <SelectItem value="exponential">Exponential</SelectItem>
-            </SelectContent>
-          </Select>
+          <p>Exponential distribution is used for rarity calculation.</p>
         </CardContent>
       </Card>
 
