@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const NFTCalculator = () => {
   const [curveType, setCurveType] = useState('linear');
   const [attributes, setAttributes] = useState([{ name: '', subcategories: [''], weight: 1 }]);
   const [totalNFTs, setTotalNFTs] = useState(1000);
   const [rarityResults, setRarityResults] = useState(null);
+  const [graphData, setGraphData] = useState(null);
 
   const addAttribute = () => {
     setAttributes([...attributes, { name: '', subcategories: [''], weight: 1 }]);
@@ -58,12 +60,24 @@ const NFTCalculator = () => {
           name: subcat,
           rarityScore: rarityScores[index],
           weightedRarityScore: weightedRarityScores[index],
+          count: Math.round(totalNFTs * (1 / subcategoryCount)), // Estimate count based on equal distribution
         })),
         weightedSubcategoryCount,
       };
     });
 
     setRarityResults(results);
+
+    // Prepare data for the graph
+    const graphData = results.flatMap(attribute => 
+      attribute.subcategories.map(subcat => ({
+        attribute: attribute.name,
+        subcategory: subcat.name,
+        count: subcat.count,
+      }))
+    );
+
+    setGraphData(graphData);
   };
 
   return (
@@ -142,9 +156,9 @@ const NFTCalculator = () => {
         </CardContent>
       </Card>
 
-      <Button onClick={calculateRarity} className="w-full">Calculate Rarity</Button>
+      <Button onClick={calculateRarity} className="w-full mb-4">Calculate Rarity</Button>
       {rarityResults && (
-        <Card>
+        <Card className="mb-4">
           <CardHeader>
             <CardTitle>Rarity Results</CardTitle>
           </CardHeader>
@@ -157,12 +171,32 @@ const NFTCalculator = () => {
                   {result.subcategories.map((subcat, subIndex) => (
                     <li key={subIndex}>
                       {subcat.name}: Rarity Score = {subcat.rarityScore.toFixed(4)}, 
-                      Weighted Rarity Score = {subcat.weightedRarityScore.toFixed(4)}
+                      Weighted Rarity Score = {subcat.weightedRarityScore.toFixed(4)},
+                      Estimated Count = {subcat.count}
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {graphData && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Attribute Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={graphData}>
+                <XAxis dataKey="subcategory" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       )}
