@@ -9,6 +9,7 @@ const NFTCalculator = () => {
   const [curveType, setCurveType] = useState('linear');
   const [attributes, setAttributes] = useState([{ name: '', subcategories: [''], weight: 1 }]);
   const [totalNFTs, setTotalNFTs] = useState(1000);
+  const [rarityResults, setRarityResults] = useState(null);
 
   const addAttribute = () => {
     setAttributes([...attributes, { name: '', subcategories: [''], weight: 1 }]);
@@ -33,12 +34,36 @@ const NFTCalculator = () => {
   };
 
   const calculateRarity = () => {
-    // Implement rarity calculation based on the selected curve type
-    // This is a placeholder and should be replaced with actual calculations
-    console.log("Calculating rarity...");
-    console.log("Curve type:", curveType);
-    console.log("Attributes:", attributes);
-    console.log("Total NFTs:", totalNFTs);
+    const results = attributes.map(attribute => {
+      const subcategoryCount = attribute.subcategories.length;
+      const weightedSubcategoryCount = subcategoryCount * attribute.weight;
+      
+      let rarityScores;
+      if (curveType === 'linear') {
+        rarityScores = attribute.subcategories.map((_, index) => {
+          return (subcategoryCount - index) / subcategoryCount;
+        });
+      } else if (curveType === 'exponential') {
+        const base = 0.5;
+        rarityScores = attribute.subcategories.map((_, index) => {
+          return Math.pow(base, index / (subcategoryCount - 1));
+        });
+      }
+      
+      const weightedRarityScores = rarityScores.map(score => score * attribute.weight);
+      
+      return {
+        name: attribute.name,
+        subcategories: attribute.subcategories.map((subcat, index) => ({
+          name: subcat,
+          rarityScore: rarityScores[index],
+          weightedRarityScore: weightedRarityScores[index],
+        })),
+        weightedSubcategoryCount,
+      };
+    });
+
+    setRarityResults(results);
   };
 
   return (
@@ -118,6 +143,29 @@ const NFTCalculator = () => {
       </Card>
 
       <Button onClick={calculateRarity} className="w-full">Calculate Rarity</Button>
+      {rarityResults && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Rarity Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {rarityResults.map((result, index) => (
+              <div key={index} className="mb-4">
+                <h3 className="font-bold">{result.name}</h3>
+                <p>Weighted Subcategory Count: {result.weightedSubcategoryCount}</p>
+                <ul>
+                  {result.subcategories.map((subcat, subIndex) => (
+                    <li key={subIndex}>
+                      {subcat.name}: Rarity Score = {subcat.rarityScore.toFixed(4)}, 
+                      Weighted Rarity Score = {subcat.weightedRarityScore.toFixed(4)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
